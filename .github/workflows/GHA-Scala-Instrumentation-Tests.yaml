@@ -5,7 +5,7 @@ on:
     branches: [ main ]
     types: [opened, synchronize, reopened, ready_for_review]
   push:
-    branches: [main]
+    branches: [tcrone/rerun-failed-tests-only]
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
     inputs:
@@ -36,8 +36,23 @@ jobs:
           - java-version: 11
             scala: 2.11
     steps:
+      - id: timestamp
+        run: echo "::set-output name=timestamp::$(timestamp +%s)"
+
+      - name: Restore the previous run result
+        uses: actions/cache@v2
+        with:
+          path: |
+            run_result
+          key: ${{ github.run_id }}-${{ github.job }}-${{ steps.timestamp.outputs.timestamp }}
+          restore-keys: |
+            ${{ github.run_id }}-${{ github.job }}-
+
+      - id: run_result
+        run: cat run_result 2>/dev/null || echo 'default'
+
       - uses: actions/checkout@v2
-      #- uses: gradle/wrapper-validation-action@v1.0.4
+        if: steps.run_result.outputs.run_result != 'success'
 
       - name: Set up Java 8
         # https://github.com/actions/setup-java
@@ -149,6 +164,8 @@ jobs:
         env:
           JAVA_HOME: ${{ env.ORG_GRADLE_PROJECT_jdk8 }}
         run: ./gradlew --console=plain --parallel :instrumentation:test -Ptest${{ matrix.java-version }} -PnoInstrumentation -Pscala-${{ matrix.scala }} --continue
+
+      - run: echo "::set-output name=run_result::success" > run_result
 
       - name: Capture build reports
         if: ${{ failure() }}
