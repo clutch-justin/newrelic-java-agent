@@ -30,11 +30,11 @@ jobs:
       matrix:
         java-version: [8, 11]
         scala: ['2.10', '2.11', '2.12', '2.13']
-        exclude:
-          - java-version: 11
-            scala: 2.10
-          - java-version: 11
-            scala: 2.11
+#        exclude:
+#          - java-version: 11
+#            scala: 2.10
+#          - java-version: 11
+#            scala: 2.11
     steps:
       - id: timestamp
         run: echo "::set-output name=timestamp::$(timestamp +%s)"
